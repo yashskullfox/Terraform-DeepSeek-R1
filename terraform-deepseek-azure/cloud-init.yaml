@@ -1,0 +1,47 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - software-properties-common
+  - gpg-agent
+  - ubuntu-drivers-common
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+
+runcmd:
+  # Log script execution for debugging
+  - exec > /var/log/cloud-init-runcmd.log 2>&1
+  - echo "Starting cloud-init runcmd..."
+
+  # Install NVIDIA Drivers
+  - ubuntu-drivers autoinstall
+
+  # Install Docker GPG key and repository
+  - mkdir -p /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+
+  # Install NVIDIA Container Toolkit
+  - distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+  - curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add -
+  - curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list
+  - apt-get update
+  - apt-get install -y nvidia-container-toolkit
+  - systemctl restart docker
+
+  # Run Ollama Docker Container
+  - echo "Starting Ollama container..."
+  - docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+
+  # Pull the DeepSeek Model
+  - echo "Waiting for Ollama server..."
+  - sleep 20
+  - echo "Pulling DeepSeek model..."
+  - docker exec ollama ollama pull deepseek-llm:7b-chat
+  - echo "Cloud-init setup complete."
