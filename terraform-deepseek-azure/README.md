@@ -78,8 +78,3 @@ terraform destroy -var="ssh_public_key_path=~/.ssh/id_rsa.pub" -auto-approve
 Terraform will remove all resources it created.
 
 ---
-Tips:
-- Keep your private key safe (set permissions if needed): `chmod 600 ~/.ssh/id_rsa`.
-- Make sure the `ssh_public_key_path` points to your actual public key file.
-- If curl cannot connect, ensure the VM’s network security rules allow port `11434`.
-- Confirm you selected the right Azure subscription before applying.
